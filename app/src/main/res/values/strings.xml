@@ -1,0 +1,48 @@
+<resources>
+    <string name="app_name">projetBOITEL</string>
+    <string name="room_1">01</string>
+    <string name="room_2">02</string>
+    <string name="room_3">03</string>
+    <string name="room_4">04</string>
+    <string name="room_5">05</string>
+    <string name="room_6">06</string>
+    <string name="room_7">07</string>
+    <string name="room_8">08</string>
+    <string name="room_9">09</string>
+    <string name="room_10">10</string>
+    <string name="room_11">11</string>
+    <string name="room_12">12</string>
+    <string name="room_13">13</string>
+    <string name="room_14">14</string>
+    <string name="room_15">15</string>
+    <string name="room_16">16</string>
+
+    <string name="monstre01">Hydre vorace</string>
+    <string name="monstre02">Chasseur de têtes de élite</string>
+    <string name="monstre03">Envouteuse tentatrice</string>
+    <string name="monstre04">Parangon Lancenoire</string>
+    <string name="monstre05">Chevalier Immortel</string>
+    <string name="monstre06">Pyromancienne de Culmefer</string>
+    <string name="monstre07">Dragon opportuniste</string>
+    <string name="monstre08">Charognards au clair de lune</string>
+    <string name="monstre09">Archonte harmonieux</string>
+    <string name="monstre10">Croisée Poing-de-tempête</string>
+    <string name="monstre11">Gardien des fables</string>
+    <string name="monstre12">Dragon de Ioch</string>
+    <string name="monstre13">Mammouth en épines</string>
+    <string name="monstre14">Cavalière meutrière</string>
+    <string name="monstre15">Chevalier assermenté</string>
+    <string name="monstre16">Oko, voleur de couronnes</string>
+
+    <string name="nb_room_left">16</string>
+    <string name="power">100</string>
+    <string name="monsterPower">36</string>
+    <string name="lifepoint">10</string>
+    <string name="result_fight"></string>
+    <string name="flee">Bah alors !? On se dégonfle !?</string>
+    <string name="beaten">Bravo ! Tu as battu le boss !</string>
+    <string name="lose">Trop fort pour toi visiblement !</string>
+    <string name="title_activity_listscore_activity">listscore_activity</string>
+
+
+</resources>

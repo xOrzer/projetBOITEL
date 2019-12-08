@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.example.todoboitel.MainActivity" >
+    <item android:id="@+id/custom"
+        android:title="Paramétrer partie"/>
+    <item android:id="@+id/restart"
+        android:title="Recommencer"/>
+    <item android:id="@+id/bestScores"
+        android:title="Meilleurs scores"/>
+    <item android:id="@+id/stop"
+        android:title="Quitter"/>
+
+</menu>
