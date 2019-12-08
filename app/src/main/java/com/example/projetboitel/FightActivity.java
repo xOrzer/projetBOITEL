@@ -179,6 +179,31 @@ public class FightActivity extends AppCompatActivity {
                 finish();
             }
         });
+
+    }
+
+    @Override
+    public void onBackPressed(){
+        resultFight = "flee";
+        Intent returnIntent = new Intent(FightActivity.this, MainActivity.class);
+
+        if(isLifeFound){
+            returnIntent.putExtra("lifeFound", "oui");
+        } else {
+            returnIntent.putExtra("lifeFound", "non");
+        }
+
+        if(isPowerFound){
+            returnIntent.putExtra("powerFound", "oui");
+        } else {
+            returnIntent.putExtra("powerFound", "non");
+        }
+
+        returnIntent.putExtra("result", resultFight);
+        returnIntent.putExtra("newPower", playerPower.getText().toString());
+        returnIntent.putExtra("newLife", playerLife.getText().toString());
+        setResult(Activity.RESULT_CANCELED, returnIntent);
+        super.onBackPressed();
     }
 
     public int genererInt(int min, int max){

@@ -39,9 +39,7 @@ import java.util.Vector;
 public class MainActivity extends AppCompatActivity {
 
     //ListView des meilleurs scores
-    ListView lv;
     ArrayList<String> listItems = new ArrayList<>();
-
 
     //Variables nécessaire au bon fonctionnement de l'activité principale
     private int FIGHT = 1; //Valeur d'envoi dans l'intent
@@ -53,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private int powerPotion, lifePotion; //Index des potions
     private int level; //Niveau du joueur
     private boolean isLost = false; //Boolean déterminant si la partie est perdue ou non
+    private boolean isCustomGame = false;
     private String name = ""; //Nom du joueur
 
     //Déclaration des éléments nécessaires pour communiquer avec le XML
@@ -98,8 +97,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        lv = (ListView) findViewById(R.id.maListe);
-
         //initialisation du niveau à 1
         level = 1;
 
@@ -119,6 +116,13 @@ public class MainActivity extends AppCompatActivity {
         }
         initEnemyPower(minPower, maxPower);
         initPotions();
+
+        try {
+            getFromIntern();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         displayGameStatus.setText("C'est parti ! Prêt à tout casser ?");
         displayLevel.setText("Etage " + Integer.toString(level));
 
@@ -156,12 +160,7 @@ public class MainActivity extends AppCompatActivity {
         button15.setTag("unknown");
         button16.setTag("unknown");
 
-        /*try {
-            System.out.println("YOOOOOO 2");
-            getFromIntern();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
+
     }
 
 
@@ -219,25 +218,27 @@ public class MainActivity extends AppCompatActivity {
         //Si fuite
         if (resultCode == Activity.RESULT_CANCELED) {
 
+            //Si la potion de vie a été trouvée
             if(data.getStringExtra("lifeFound").matches("oui")){
-                lifePotion = -1;
-                displayLife.setText(data.getStringExtra("newLife"));
+                lifePotion = -1; //Modification index afin de ne plus pouvoir retomber dessus
             }
 
+            //Si la potion de vie a été trouvée
             if(data.getStringExtra("powerFound").matches("oui")){
-                powerPotion = -1;
-                displayPower.setText(data.getStringExtra("newPower"));
+                powerPotion = -1; //Modification index afin de ne plus pouvoir retomber dessus
             }
 
-            displayPower.setText(data.getStringExtra("newPower"));
-
+            //Fuite implique la perte de 1 point de vie
             int newLife = Integer.parseInt(displayLife.getText().toString());
             newLife--;
 
+            displayPower.setText(data.getStringExtra("newPower"));
+
             displayLife.setText(Integer.toString(newLife));
 
-            displayResult.setText(getString(R.string.flee));
+            displayResult.setText(getString(R.string.flee)); //Affichage d'un message en référence à la fuite
 
+            //Le monstre a été vu donc on modifie l'image
             buttonSelected.setTag("seen");
             buttonSelected.setImageResource(R.drawable.rakdos);
 
@@ -371,18 +372,14 @@ public class MainActivity extends AppCompatActivity {
             displayGameStatus.setText("Défaite !");
             isLost = true;
 
-            sauvegarde();
+            if(!isCustomGame)
+                sauvegarde();
 
             return true;
         }
 
         return false;
     }
-
-
-
-
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -445,6 +442,7 @@ public class MainActivity extends AppCompatActivity {
     public void okPopup(View v) {
         askName();
 
+        /* Gestion des différents cas invalides */
         if(customPopup.getPowerValue().trim().matches("") || customPopup.getLifeValue().trim().matches("") || customPopup.getMaxPowerValue().trim().matches("")){
             Toast toast = Toast.makeText(this, "Tous les champs ne sont pas valides !", Toast.LENGTH_LONG);
             TextView tv = (TextView) toast.getView().findViewById(android.R.id.message);
@@ -455,25 +453,28 @@ public class MainActivity extends AppCompatActivity {
             TextView tv = (TextView) toast.getView().findViewById(android.R.id.message);
             if( tv != null) tv.setGravity(Gravity.CENTER);
             toast.show();
-        }else{
-            isLost = false;
+        }else{ //Si tout est ok alors on paramètre la partie !
+            isLost = false; //Au cas où la partie précédente était perdue
+            isCustomGame = true; //Permet de savoir si la game est Custom ou non
 
-            level = 1;
+            level = 1; //On redémarre au niveau 1
             initialLife = Integer.parseInt(customPopup.getLifeValue());
             initialPower = Integer.parseInt(customPopup.getPowerValue());
 
+            /* On modifie les différents affichages */
             displayLife.setText(customPopup.getLifeValue());
             displayPower.setText(customPopup.getPowerValue());
 
-            monstersLeft = 16;
+            monstersLeft = 16; //Réinitialisation du nombre de monstres  en vie
             nbRoomLeft.setText(R.string.nb_room_left);
 
+            //Initialisation de la puissance des monstres
             maxPower = Integer.parseInt(customPopup.getMaxPowerValue());
             enemyPower.clear();
             initEnemyPower(minPower, maxPower);
-            initPotions();
+            initPotions(); //Initialisation des potions
 
-            displayGameStatus.setText("Bienvenue ! Prêt à tout casser ?");
+            displayGameStatus.setText(R.string.welcome);
             displayResult.setText("Bonne chance !");
 
             resetButtons();
@@ -485,6 +486,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
+
+        //Différents choix du menu
 
         if(id == R.id.custom){
             customPopup = new CustomPopup(this);
@@ -512,8 +515,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void nextLevel(){
         level++;
-        minPower += 50;
-        maxPower += 75;
+        minPower += 75;
+        maxPower += 80;
         initialLife += 5;
         initialPower += 50;
 
@@ -532,11 +535,9 @@ public class MainActivity extends AppCompatActivity {
         resetButtons();
     }
 
-    private void restartGame(){
-
-        askName();
-
+    private void reInitAll(){
         isLost = false;
+        isCustomGame = false;
         level = 1;
         minPower = 1;
         maxPower = 100;
@@ -559,6 +560,12 @@ public class MainActivity extends AppCompatActivity {
 
         displayGameStatus.setText("Bienvenue ! Prêt à tout casser ?");
         resetButtons();
+    }
+
+    private void restartGame(){
+        askName();
+
+        reInitAll();
     }
 
     private void askName(){
@@ -609,6 +616,11 @@ public class MainActivity extends AppCompatActivity {
 
         if(listItems.isEmpty()){
             listItems.add(score);
+            if(listItems.size() > 10){
+                for (int i = 10; i<=listItems.size(); i++){
+                    listItems.remove(i);
+                }
+            }
         } else {
             for (int i = 0; i < listItems.size(); i++) {
                 nb=0;
@@ -647,8 +659,19 @@ public class MainActivity extends AppCompatActivity {
 
             if(done) {
                 listItems.add(insert, score);
+                if(listItems.size() > 10){
+                    for (int i = 10; i<=listItems.size(); i++){
+                        listItems.remove(i);
+                    }
+                }
+
             } else {
                 listItems.add(score);
+                if(listItems.size() > 10){
+                    for (int i = 10; i<=listItems.size(); i++){
+                        listItems.remove(i);
+                    }
+                }
             }
         }
 
@@ -685,12 +708,7 @@ public class MainActivity extends AppCompatActivity {
 
             value += (char) content;
 
-
         }
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
-        lv.setAdapter(adapter);
-
     }
 
 }

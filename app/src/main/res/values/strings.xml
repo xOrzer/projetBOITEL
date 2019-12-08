@@ -43,6 +43,8 @@
     <string name="beaten">Bravo ! Tu as battu le boss !</string>
     <string name="lose">Trop fort pour toi visiblement !</string>
     <string name="title_activity_listscore_activity">listscore_activity</string>
+    <string name="welcome">Bienvenue ! Prêt à tout casser ?</string>
+
 
 
 </resources>
