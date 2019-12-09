@@ -86,21 +86,20 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton button15;
     private ImageButton button16;
 
-    //Tableau avec les puissances des adversaires
+    /* Tableau avec les puissances des adversaires */
     Vector enemyPower = new Vector();
-    Vector <Integer> bestScores = new Vector <> (10);
 
 
-    //Ce qu'il va se passer à la création de l'activité
+    /* Ce qu'il va se passer à la création de l'activité */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //initialisation du niveau à 1
-        level = 1;
 
-        //Connexion des éléments du XML avec le java
+        level = 1; //initialisation du niveau à 1
+
+        /* Connexion des éléments du XML avec le java */
         displayLevel = findViewById(R.id.level);
         displayPlayerName = findViewById(R.id.name);
         displayLife = findViewById(R.id.life);
@@ -109,22 +108,28 @@ public class MainActivity extends AppCompatActivity {
         displayResult = findViewById(R.id.resultGame);
         displayGameStatus = findViewById(R.id.gameStatus);
 
+        /* Demande du nom du joueur via popup */
         askName();
-        if(name == ""){
-            name = "Invité";
+
+        /* S'il ne saisit pas de nom (si le joueur clique à côté de la popup) */
+        if(name.matches("")){
+            name = "Invité"; //Il s'appelle Invité par défaut
             displayPlayerName.setText(name);
         }
+
         initEnemyPower(minPower, maxPower);
         initPotions();
 
+        /* Récupération des meilleurs scores */
         try {
             getFromIntern();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        displayGameStatus.setText("C'est parti ! Prêt à tout casser ?");
-        displayLevel.setText("Etage " + Integer.toString(level));
+        displayGameStatus.setText(R.string.letsgo);
+        displayResult.setText(R.string.goodluck);
+        displayLevel.setText("Etage " + level);
 
         button01 = findViewById(R.id.button01);
         button02 = findViewById(R.id.button02);
@@ -159,20 +164,18 @@ public class MainActivity extends AppCompatActivity {
         button14.setTag("unknown");
         button15.setTag("unknown");
         button16.setTag("unknown");
-
-
     }
 
 
     public void onClick(View v){
         buttonSelected = findViewById(v.getId());
 
-        if(buttonSelected.getTag() == "beaten" || isLost || checkVictory()){
+        /* Différents cas qui implique qu'aucune action ne doit être faite si on clique sur le bouton */
+        /* Cas 1 : Le monstre a déjà été battu */
+        /* Cas 2 : La partie est terminée */
+        if(buttonSelected.getTag() == "beaten" || isLost){
             if(isLost){
                 Toast.makeText(getApplicationContext(), "Partie terminée ! On s'en refait une ?", Toast.LENGTH_LONG).show();
-            }
-            else if(checkVictory()){
-                Toast.makeText(getApplicationContext(), "T'as déjà tout cassé ! Ça te suffit pas !?", Toast.LENGTH_LONG).show();
             }else if(buttonSelected.getTag() == "beaten"){
                 Toast.makeText(getApplicationContext(), "Tu l'as déjà battu, laisse le se reposer !", Toast.LENGTH_LONG).show();
             }
@@ -186,12 +189,13 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("Life", displayLife.getText().toString());
             intent.putExtra("Power", displayPower.getText().toString());
             intent.putExtra("Name", name);
+            intent.putExtra("Level", Integer.toString(level));
             intent.putExtra("MonsterPower", enemyPower.get(indexRoom - 1).toString());
             intent.putExtra("roomIndex", roomID);
 
-            if(indexRoom == powerPotion){
+            if(indexRoom == powerPotion){ //Si le joueur a cliqué sur la salle où se trouve la potion de puissance
                 intent.putExtra("Potion", "power");
-            } else if(indexRoom == lifePotion){
+            } else if(indexRoom == lifePotion){ //Si le joueur a cliqué sur la salle où se trouve la potion de vie
                 intent.putExtra("Potion", "life");
             } else {
                 intent.putExtra("Potion", "nop");
@@ -305,28 +309,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public int genererInt(int min, int max){
-        Random random = new Random();
-        int nb;
-        nb = min + random.nextInt(max+1 - min);
-        return nb;
-    }
 
-    private void initEnemyPower(int minPower, int maxPower){
-        int powerMonster;
-        for(int i=0; i<16; i++){
-            powerMonster = genererInt(minPower, maxPower);
-            System.out.println(powerMonster);
-            enemyPower.add(powerMonster);
-        }
-    }
-
-    private void initPotions(){
-        powerPotion = genererInt(0,15);
-        do{
-            lifePotion = genererInt(0,15);
-        }while(powerPotion == lifePotion);
-    }
 
     private boolean checkVictory(){
         if(monstersLeft == 0){
@@ -388,7 +371,308 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    //Reinitialisation des boutons
+
+    /* Actions réalisées lors de la validation de la saisie du nom */
+    public void clickPlay(View v){
+        EditText temp = namePopup.findViewById(R.id.playerName);
+        if(namePopup.getName().trim().matches("")) {
+            Toast.makeText(getApplicationContext(), "Veuillez saisir votre pseudo.", Toast.LENGTH_SHORT).show();
+            temp.setText("");
+        } else {
+            displayPlayerName.setText(namePopup.getName());
+            name = namePopup.getName();
+            namePopup.dismiss();
+        }
+    }
+
+    /* Actions réalisées lors de la validation de la partie custom */
+    public void okPopup(View v) {
+        askName();
+
+        /* Gestion des différents cas invalides */
+        if(customPopup.getPowerValue().trim().matches("") || customPopup.getLifeValue().trim().matches("") || customPopup.getMaxPowerValue().trim().matches("")){
+            Toast toast = Toast.makeText(this, "Tous les champs ne sont pas valides !", Toast.LENGTH_LONG);
+            TextView tv = (TextView) toast.getView().findViewById(android.R.id.message);
+            if( tv != null) tv.setGravity(Gravity.CENTER);
+            toast.show();
+        }else if(Integer.parseInt(customPopup.getLifeValue())<10 || Integer.parseInt(customPopup.getMaxPowerValue())<100 || Integer.parseInt(customPopup.getPowerValue())<50){
+            Toast toast = Toast.makeText(this, "Tous les champs ne sont pas valides !\nPoints de vie minimum : 10\nPuissance minimale : 50\n Puissance monstre minimale : 100", Toast.LENGTH_LONG);
+            TextView tv = (TextView) toast.getView().findViewById(android.R.id.message);
+            if( tv != null) tv.setGravity(Gravity.CENTER);
+            toast.show();
+        }else{ //Si tout est ok alors on paramètre la partie !
+            isLost = false; //Au cas où la partie précédente était perdue
+            isCustomGame = true; //Permet de savoir si la game est Custom ou non
+
+            level = 1; //On redémarre au niveau 1
+            initialLife = Integer.parseInt(customPopup.getLifeValue());
+            initialPower = Integer.parseInt(customPopup.getPowerValue());
+
+            /* On modifie les différents affichages */
+            displayLife.setText(customPopup.getLifeValue());
+            displayPower.setText(customPopup.getPowerValue());
+
+            monstersLeft = 16; //Réinitialisation du nombre de monstres  en vie
+            nbRoomLeft.setText(R.string.nb_room_left);
+
+            //Initialisation de la puissance des monstres
+            maxPower = Integer.parseInt(customPopup.getMaxPowerValue());
+            enemyPower.clear();
+            initEnemyPower(minPower, maxPower);
+
+            initPotions(); //Initialisation des potions
+
+            displayGameStatus.setText(R.string.letsgo);
+            displayResult.setText(R.string.goodluck);
+
+            resetButtons();
+
+            customPopup.dismiss();
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        //Différents choix du menu
+
+        if(id == R.id.custom){ //Pour une partie personnalisée..
+            customPopup = new CustomPopup(this);
+            customPopup.build();
+        }
+
+        if (id == R.id.restart) { //Recommencer la partie à 0
+            restartGame();
+            return true;
+        }
+
+        if(id == R.id.bestScores){ //Afficher les 10 meilleurs scores
+            Intent intent = new Intent(MainActivity.this, ListActivity.class);
+            startActivity(intent);
+
+            return true;
+        }
+
+        if (id == R.id.stop) { //Arrêter l'application
+            finish();
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    /* Fonction appelée lorsque le joueur passe au niveau suivant */
+    private void nextLevel(){
+        level++; //Incrémentation du niveau
+
+        minPower += 75; //On augmente la puissance min et max des monstres
+        maxPower += 80; //afin d'augmenter la difficulté
+        initialLife += 5; //On lui donne un peu plus de vie
+        initialPower += 50; //et plus de puissance initiale
+
+        /* Mise à jours des données à l'écran */
+        displayPower.setText(Integer.toString(initialPower));
+        displayLife.setText(Integer.toString(initialLife));
+        displayLevel.setText("Etage " + level);
+        displayGameStatus.setText(R.string.letsgolevelup);
+        displayResult.setText(R.string.goodluck);
+
+        nbRoomLeft.setText(R.string.nb_room_left);
+        monstersLeft = 16; //Réinitialisation du nombre de monstre en vie
+
+        /* On réinitialise la puissance des monstres ainsi que les potions */
+        enemyPower.clear();
+        initEnemyPower(minPower, maxPower);
+        initPotions();
+
+        /* Reset des boutons */
+        resetButtons();
+    }
+
+    /* Réinitialisation intégrale de la partie par défaut */
+    private void reInitAll(){
+        isLost = false;
+        isCustomGame = false;
+        level = 1;
+        minPower = 1;
+        maxPower = 100;
+        initialLife = 10;
+        initialPower = 100;
+
+        displayPower.setText("100");
+
+        displayLevel.setText("Etage " + level);
+        displayLife.setText(Integer.toString(initialLife));
+        nbRoomLeft.setText(R.string.nb_room_left);
+
+        monstersLeft = 16;
+
+        enemyPower.clear();
+        initEnemyPower(minPower, maxPower);
+
+        initPotions();
+
+        displayGameStatus.setText(R.string.letsgo);
+        displayResult.setText(R.string.goodluck);
+        resetButtons();
+    }
+
+    /* Réinitialisation de la partie */
+    private void restartGame(){
+        askName();
+        reInitAll();
+    }
+
+    /* Fonction qui affiche la popup afin de récupérer le nom du joueur */
+    private void askName(){
+        namePopup = new NamePopup(this);
+        namePopup.build();
+    }
+
+    /* Fonction permettant la sauvegarde du score de la partie qui vient de se terminer */
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    private void sauvegarde(){
+        Toast.makeText(MainActivity.this, "Sauvegarde du score en cours...", Toast.LENGTH_SHORT).show();
+
+        /* Récupération de la date actuelle sous la forme DD/MM/YYYY */
+        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/YYYY");
+        Date now = new Date();
+        String date = formatter.format(now);
+
+        /* Construction du score */
+        String score = displayPlayerName.getText().toString() + " - Etage : " + level + " - Puissance : " + displayPower.getText().toString()+ " - " + date;
+
+        int insert = 0; //index où le score sera inséré dans le listItems
+        int index = 0; //Index servant à parcourir le score
+        int nb = 0; //Utile afin de se repérer durant le parcours de notre score (Représente le nombre de ':' rencontré(s))
+
+        boolean done = false; //Boolean permettant d'indiquer si l'index a été trouvé
+
+        String stage = ""; //Etage - Niveau atteint lors de la dernière partie
+        String power = ""; //Puissance atteinte lors de la dernière partie
+
+        String currentScore = ""; //Score actuel que l'on traite dans le listItems
+        String currentStage = ""; //String qui récupère la valeur de l'étage du score actuel
+        String currentPower = ""; //String qui récupère la valeur de la puissance du score actuel
+
+        /* Parcours du dernier score et récupération de l'étage et la puissance atteint(es) */
+        while (index != score.length() -1) {
+            //Si le caractère actuel est un ':'
+            if(score.substring(index, index+1).matches(":")){
+                int j = index+2;
+                nb++;
+
+                /* Parcours afin de récupérer soit l'étage, soit la puissance du score */
+                while(!score.substring(j,j+1).matches(" ")) {
+                    if (nb == 1) {
+                        stage += score.substring(j, j + 1);
+
+                    } else if (nb == 2) {
+                        power += score.substring(j, j + 1);
+                    }
+                    j++;
+                }
+
+            }
+            index++; // Passage au caractère suivant
+        }
+
+        /* Si la liste est vide alors on ajoute */
+        if(listItems.isEmpty()){
+            listItems.add(score);
+        } else { //Si elle n'est pas vide, on parcourt la liste afin de trouver où insérer le dernier score
+            for (int i = 0; i < listItems.size(); i++) {
+                nb=0;
+                index = 0;
+                currentPower = "";
+                currentStage = "";
+
+                currentScore = listItems.get(i); //Récupération du score à traiter
+
+                /* Parcours du score à traiter et  récupération du niveau et de la puissance de ce score */
+                while (index != currentScore.length() - 1) {
+                    if((index+1) > currentScore.length()){ //Si on est en fin de chaîne, on arrête
+                        break;
+                    } else if (currentScore.substring(index, index + 1).matches(":")) {
+                        int j = index + 2;
+                        nb++;
+                        while (!currentScore.substring(j, j + 1).matches(" ")) {
+                            if (!currentScore.substring(j, j + 1).matches(" ")) {
+                                if (nb == 1) { //Premier ':'
+                                    currentStage += currentScore.substring(j, j + 1); //Récupération niveau
+                                } else if (nb == 2) { //Deuxième ':'
+                                    currentPower += currentScore.substring(j, j + 1); //Récupération puissance
+                                }
+                            }
+                            j++;
+                        }
+                    }
+                    index++;
+                }
+
+                /* Condition qui permet de bien récupérer l'index où positionner le dernier score */
+                if (((Integer.parseInt(stage) > Integer.parseInt(currentStage)) || (Integer.parseInt(stage) == Integer.parseInt(currentStage) && Integer.parseInt(power) > Integer.parseInt(currentPower))) && !done ) {
+                    insert = i;
+                    done = true;
+                }
+            }
+
+            if(done) { //Si un index a été trouvé on ajoute le score à cet index
+                listItems.add(insert, score);
+                /* On s'assure de n'avoir que les 10 meilleurs scores */
+                if(listItems.size() > 10){
+                    for (int i = 10; i<=listItems.size(); i++){
+                        listItems.remove(i);
+                    }
+                }
+
+            } else { //Sinon on l'ajoute à la fin
+                listItems.add(score);
+                /* On s'assure de n'avoir que les 10 meilleurs scores */
+                if(listItems.size() > 10){
+                    for (int i = 10; i<=listItems.size(); i++){
+                        listItems.remove(i);
+                    }
+                }
+            }
+        }
+
+        /* On réécrit les scores dans le fichier de sauvegarde */
+        try {
+            FileOutputStream outputStream= openFileOutput("sauvegarde", MODE_PRIVATE);
+            OutputStreamWriter myOutWriter = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
+
+            for (int i = 0; i < listItems.size(); i++) {
+                myOutWriter.append(listItems.get(i)+"\n");
+            }
+
+            myOutWriter.close();
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /* Initialisation de la puissance des ennemis entre minPower et maxPower */
+    private void initEnemyPower(int minPower, int maxPower){
+        int powerMonster;
+        for(int i=0; i<16; i++){
+            powerMonster = genererInt(minPower, maxPower);
+            System.out.println(powerMonster);
+            enemyPower.add(powerMonster);
+        }
+    }
+
+    /* Initialisation des index des potions */
+    private void initPotions(){
+        powerPotion = genererInt(0,15);
+        do{
+            lifePotion = genererInt(0,15);
+        }while(powerPotion == lifePotion);
+    }
+
+    /* Reinitialisation des boutons */
     private void resetButtons(){
         int idReset = R.drawable.magic;
 
@@ -427,286 +711,33 @@ public class MainActivity extends AppCompatActivity {
         button16.setTag("unknown");
     }
 
-    public void clickPlay(View v){
-        EditText temp = namePopup.findViewById(R.id.playerName);
-        if(namePopup.getName().trim().matches("")) {
-            Toast.makeText(getApplicationContext(), "Veuillez saisir votre pseudo.", Toast.LENGTH_SHORT).show();
-            temp.setText("");
-        } else {
-            displayPlayerName.setText(namePopup.getName());
-            name = namePopup.getName();
-            namePopup.dismiss();
-        }
+    /* Génération d'un entier aléatoire entre min et max COMPRIS */
+    public int genererInt(int min, int max){
+        Random random = new Random();
+        int nb;
+        nb = min + random.nextInt(max+1 - min);
+        return nb;
     }
 
-    public void okPopup(View v) {
-        askName();
-
-        /* Gestion des différents cas invalides */
-        if(customPopup.getPowerValue().trim().matches("") || customPopup.getLifeValue().trim().matches("") || customPopup.getMaxPowerValue().trim().matches("")){
-            Toast toast = Toast.makeText(this, "Tous les champs ne sont pas valides !", Toast.LENGTH_LONG);
-            TextView tv = (TextView) toast.getView().findViewById(android.R.id.message);
-            if( tv != null) tv.setGravity(Gravity.CENTER);
-            toast.show();
-        }else if(Integer.parseInt(customPopup.getLifeValue())<10 || Integer.parseInt(customPopup.getMaxPowerValue())<100 || Integer.parseInt(customPopup.getPowerValue())<50){
-            Toast toast = Toast.makeText(this, "Tous les champs ne sont pas valides !\nPoints de vie minimum : 10\nPuissance minimale : 50\n Puissance monstre minimale : 100", Toast.LENGTH_LONG);
-            TextView tv = (TextView) toast.getView().findViewById(android.R.id.message);
-            if( tv != null) tv.setGravity(Gravity.CENTER);
-            toast.show();
-        }else{ //Si tout est ok alors on paramètre la partie !
-            isLost = false; //Au cas où la partie précédente était perdue
-            isCustomGame = true; //Permet de savoir si la game est Custom ou non
-
-            level = 1; //On redémarre au niveau 1
-            initialLife = Integer.parseInt(customPopup.getLifeValue());
-            initialPower = Integer.parseInt(customPopup.getPowerValue());
-
-            /* On modifie les différents affichages */
-            displayLife.setText(customPopup.getLifeValue());
-            displayPower.setText(customPopup.getPowerValue());
-
-            monstersLeft = 16; //Réinitialisation du nombre de monstres  en vie
-            nbRoomLeft.setText(R.string.nb_room_left);
-
-            //Initialisation de la puissance des monstres
-            maxPower = Integer.parseInt(customPopup.getMaxPowerValue());
-            enemyPower.clear();
-            initEnemyPower(minPower, maxPower);
-            initPotions(); //Initialisation des potions
-
-            displayGameStatus.setText(R.string.welcome);
-            displayResult.setText("Bonne chance !");
-
-            resetButtons();
-
-            customPopup.dismiss();
-        }
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        //Différents choix du menu
-
-        if(id == R.id.custom){
-            customPopup = new CustomPopup(this);
-            customPopup.build();
-        }
-
-        if (id == R.id.restart) {
-            restartGame();
-            return true;
-        }
-
-        if(id == R.id.bestScores){
-            Intent intent = new Intent(MainActivity.this, ListActivity.class);
-            startActivity(intent);
-
-            return true;
-        }
-
-        if (id == R.id.stop) {
-            finish();
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    private void nextLevel(){
-        level++;
-        minPower += 75;
-        maxPower += 80;
-        initialLife += 5;
-        initialPower += 50;
-
-        displayPower.setText(Integer.toString(initialPower));
-        displayLife.setText(Integer.toString(initialLife));
-        displayLevel.setText("Etage " + Integer.toString(level));
-        displayGameStatus.setText("En route pour le niveau suivant !");
-        displayResult.setText("Bonne chance !");
-
-        nbRoomLeft.setText("16");
-        monstersLeft = 16;
-        enemyPower.clear();
-        initEnemyPower(minPower, maxPower);
-        initPotions();
-
-        resetButtons();
-    }
-
-    private void reInitAll(){
-        isLost = false;
-        isCustomGame = false;
-        level = 1;
-        minPower = 1;
-        maxPower = 100;
-        initialLife = 10;
-        initialPower = 100;
-
-        displayPower.setText("100");
-
-        displayLevel.setText("Etage " + Integer.toString(level));
-        displayLife.setText(Integer.toString(initialLife));
-        nbRoomLeft.setText(R.string.nb_room_left);
-        displayResult.setText("");
-
-        monstersLeft = 16;
-
-        enemyPower.clear();
-        initEnemyPower(minPower, maxPower);
-
-        initPotions();
-
-        displayGameStatus.setText("Bienvenue ! Prêt à tout casser ?");
-        resetButtons();
-    }
-
-    private void restartGame(){
-        askName();
-
-        reInitAll();
-    }
-
-    private void askName(){
-        namePopup = new NamePopup(this);
-        namePopup.build();
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private void sauvegarde(){
-        Toast.makeText(MainActivity.this, "Sauvegarde du score en cours...", Toast.LENGTH_SHORT).show();
-
-        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/YYYY");
-        Date now = new Date();
-        String date = formatter.format(now);
-
-        String score = displayPlayerName.getText().toString() + " - Etage : " + level + " - Puissance : " + displayPower.getText().toString()+ " - " + date;
-
-        int insert = 0;
-        int index = 0;
-        int nb = 0;
-        boolean done = false;
-        String stage = "";
-        String power = "";
-        String currentStage = "";
-        String currentPower = "";
-        String currentScore = "";
-
-
-        while (index != score.length() -1) {
-            if(score.substring(index, index+1).matches(":")){
-                int j = index+2;
-                nb++;
-                while(!score.substring(j,j+1).matches(" ")) {
-                    if (!score.substring(j, j + 1).matches(" ")) {
-                        if (nb == 1) {
-                            stage += score.substring(j, j + 1);
-
-                        } else if (nb == 2) {
-                            power += score.substring(j, j + 1);
-                        }
-                    }
-                    j++;
-                }
-
-            }
-            index++;
-        }
-
-        if(listItems.isEmpty()){
-            listItems.add(score);
-            if(listItems.size() > 10){
-                for (int i = 10; i<=listItems.size(); i++){
-                    listItems.remove(i);
-                }
-            }
-        } else {
-            for (int i = 0; i < listItems.size(); i++) {
-                nb=0;
-                index = 0;
-                currentPower = "";
-                currentStage = "";
-
-                currentScore = listItems.get(i); //Récupération élément Listview
-
-                while (index != currentScore.length() - 1) {
-                    if((index+1) > currentScore.length()){
-                        break;
-                    } else if (currentScore.substring(index, index + 1).matches(":")) {
-                        int j = index + 2;
-                        nb++;
-                        while (!currentScore.substring(j, j + 1).matches(" ")) {
-                            if (!currentScore.substring(j, j + 1).matches(" ")) {
-                                if (nb == 1) { //Premier ':'
-                                    currentStage += currentScore.substring(j, j + 1); //Récupération niveau
-                                } else if (nb == 2) { //Deuxième ':'
-                                    currentPower += currentScore.substring(j, j + 1); //Récupération puissance
-                                }
-                            }
-                            j++;
-                        }
-                    }
-                    index++;
-                }
-
-                if (((Integer.parseInt(stage) > Integer.parseInt(currentStage)) || (Integer.parseInt(stage) == Integer.parseInt(currentStage) && Integer.parseInt(power) > Integer.parseInt(currentPower))) && !done ) {
-
-                    insert = i;
-                    done = true;
-                }
-            }
-
-            if(done) {
-                listItems.add(insert, score);
-                if(listItems.size() > 10){
-                    for (int i = 10; i<=listItems.size(); i++){
-                        listItems.remove(i);
-                    }
-                }
-
-            } else {
-                listItems.add(score);
-                if(listItems.size() > 10){
-                    for (int i = 10; i<=listItems.size(); i++){
-                        listItems.remove(i);
-                    }
-                }
-            }
-        }
-
-        try {
-            FileOutputStream outputStream= openFileOutput("sauvegarde", MODE_PRIVATE);
-            OutputStreamWriter myOutWriter = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
-
-            for (int i = 0; i < listItems.size(); i++) {
-                myOutWriter.append(listItems.get(i)+"\n");
-            }
-
-            myOutWriter.close();
-            outputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
+    /* Fonction permettant de récupérer les scores enregistrés */
     private void getFromIntern() throws IOException {
 
-        String value = "";
+        String value = ""; //String qui contiendra le score
 
-        FileInputStream inputStream = openFileInput("sauvegarde");
+        FileInputStream inputStream = openFileInput("sauvegarde"); //Ouverture du fichier avec les scores enregistrés
         BufferedReader br = new BufferedReader(new InputStreamReader(inputStream,"utf8"), 8192);
         int content;
 
+        /* Boucle remplissant notre chaine "value" */
         while ((content=br.read())!=-1){
 
-            if (content==10){
-                listItems.add(value);
-                value = "";
-                continue;
+            if (content==10){ //Si on rencontre un saut de ligne alors la chaîne est finie
+                listItems.add(value); //On ajoute alors notre chaîne qui n'est autre qu'un score
+                value = ""; //Réinitialisation de value pour la prochaine itération
+                continue; //Itération suivante
             }
 
-            value += (char) content;
+            value += (char) content; //Contruction de notre chaîne
 
         }
     }

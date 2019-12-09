@@ -44,6 +44,10 @@
     <string name="lose">Trop fort pour toi visiblement !</string>
     <string name="title_activity_listscore_activity">listscore_activity</string>
     <string name="welcome">Bienvenue ! Prêt à tout casser ?</string>
+    <string name="goodluck">Bonne chance !</string>
+    <string name="letsgo">C\'est parti ! Prêt à tout casser ?</string>
+    <string name="letsgolevelup">En route pour le niveau suivant !</string>
+
 
 
 

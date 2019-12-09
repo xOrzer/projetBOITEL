@@ -71,7 +71,7 @@ public class FightActivity extends AppCompatActivity {
 
 
         if(foundPotion.matches("power")){
-            int powerAdded = genererInt(5,10);
+            int powerAdded = genererInt(5,10) * Integer.parseInt(intent.getStringExtra("Level"));
             newPower += powerAdded;
             playerPower.setText(Integer.toString(newPower));
 
@@ -84,7 +84,7 @@ public class FightActivity extends AppCompatActivity {
         }
 
         if(foundPotion.matches("life")){
-            int lifeAdded = genererInt(1,3);
+            int lifeAdded = genererInt(1,3) + Integer.parseInt(intent.getStringExtra("Level")) -1;
             newLife += lifeAdded;
             playerLife.setText(Integer.toString(newLife));
 
