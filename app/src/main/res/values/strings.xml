@@ -18,7 +18,7 @@
     <string name="room_16">16</string>
 
     <string name="monstre01">Hydre vorace</string>
-    <string name="monstre02">Chasseur de têtes de élite</string>
+    <string name="monstre02">Chasseur de têtes d\'élite</string>
     <string name="monstre03">Envouteuse tentatrice</string>
     <string name="monstre04">Parangon Lancenoire</string>
     <string name="monstre05">Chevalier Immortel</string>
@@ -29,7 +29,7 @@
     <string name="monstre10">Croisée Poing-de-tempête</string>
     <string name="monstre11">Gardien des fables</string>
     <string name="monstre12">Dragon de Ioch</string>
-    <string name="monstre13">Mammouth en épines</string>
+    <string name="monstre13">Mammouth d\'épines</string>
     <string name="monstre14">Cavalière meutrière</string>
     <string name="monstre15">Chevalier assermenté</string>
     <string name="monstre16">Oko, voleur de couronnes</string>
@@ -38,10 +38,13 @@
     <string name="power">100</string>
     <string name="monsterPower">36</string>
     <string name="lifepoint">10</string>
+    <string name="initResult">Résultat combar</string>
     <string name="result_fight"></string>
     <string name="flee">Bah alors !? On se dégonfle !?</string>
     <string name="beaten">Bravo ! Tu as battu le boss !</string>
     <string name="lose">Trop fort pour toi visiblement !</string>
+    <string name="gameLost">Dommage ! Tu as perdu !</string>
+    <string name="defeat">Défaite !</string>
     <string name="title_activity_listscore_activity">listscore_activity</string>
     <string name="welcome">Bienvenue ! Prêt à tout casser ?</string>
     <string name="goodluck">Bonne chance !</string>

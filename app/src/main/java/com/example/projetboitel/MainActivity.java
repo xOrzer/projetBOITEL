@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -38,23 +39,25 @@ import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity {
 
-    //ListView des meilleurs scores
+    /* ListView des meilleurs scores */
     ArrayList<String> listItems = new ArrayList<>();
 
-    //Variables nécessaire au bon fonctionnement de l'activité principale
+    /* Variables nécessaire au bon fonctionnement de l'activité principale */
     private int FIGHT = 1; //Valeur d'envoi dans l'intent
     private int minPower = 1; //Valeur puissance minimale des monstres
-    private int maxPower = 100; //Valeur puissance maximale des monstres
+    private int maxPower = 150; //Valeur puissance maximale des monstres
+
     private int initialLife = 10; //Points de vie de départ
     private int initialPower = 100; //Puissance de départ
     private int monstersLeft = 16; //Nombre de monstres encore vivant
     private int powerPotion, lifePotion; //Index des potions
     private int level; //Niveau du joueur
     private boolean isLost = false; //Boolean déterminant si la partie est perdue ou non
+    private boolean isWon = false; //Boolean déterminant si la partie est gagnée ou non
     private boolean isCustomGame = false;
     private String name = ""; //Nom du joueur
 
-    //Déclaration des éléments nécessaires pour communiquer avec le XML
+    /* Déclaration des éléments nécessaires pour communiquer avec le XML */
     private TextView displayLevel;
     private TextView displayPlayerName;
     private TextView displayPower;
@@ -63,11 +66,11 @@ public class MainActivity extends AppCompatActivity {
     private TextView nbRoomLeft;
     private TextView displayGameStatus;
 
-    //Déclaration des Popup
+    /* Déclaration des Popup */
     private CustomPopup customPopup; //Popup pour customiser une partie
     private NamePopup namePopup; //Popup au lancement pour récupérer le pseudo du joueur
 
-    //Déclaration des boutons
+    /* Déclaration des boutons */
     private ImageButton buttonSelected; //Permet la gestion des mise à jour des boutons
     private ImageButton button01;
     private ImageButton button02;
@@ -89,6 +92,13 @@ public class MainActivity extends AppCompatActivity {
     /* Tableau avec les puissances des adversaires */
     Vector enemyPower = new Vector();
 
+    private MediaPlayer hurt;
+    private MediaPlayer sword;
+    private MediaPlayer lose;
+    private MediaPlayer closeDoor;
+    private MediaPlayer affraid;
+    private MediaPlayer openDoor;
+    private MediaPlayer win;
 
     /* Ce qu'il va se passer à la création de l'activité */
     @Override
@@ -99,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
 
         level = 1; //initialisation du niveau à 1
 
-        /* Connexion des éléments du XML avec le java */
+        /* Liaison des éléments du XML avec le java + initialisation des boutons*/
         displayLevel = findViewById(R.id.level);
         displayPlayerName = findViewById(R.id.name);
         displayLife = findViewById(R.id.life);
@@ -107,29 +117,6 @@ public class MainActivity extends AppCompatActivity {
         nbRoomLeft = findViewById(R.id.roomLeft);
         displayResult = findViewById(R.id.resultGame);
         displayGameStatus = findViewById(R.id.gameStatus);
-
-        /* Demande du nom du joueur via popup */
-        askName();
-
-        /* S'il ne saisit pas de nom (si le joueur clique à côté de la popup) */
-        if(name.matches("")){
-            name = "Invité"; //Il s'appelle Invité par défaut
-            displayPlayerName.setText(name);
-        }
-
-        initEnemyPower(minPower, maxPower);
-        initPotions();
-
-        /* Récupération des meilleurs scores */
-        try {
-            getFromIntern();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        displayGameStatus.setText(R.string.letsgo);
-        displayResult.setText(R.string.goodluck);
-        displayLevel.setText("Etage " + level);
 
         button01 = findViewById(R.id.button01);
         button02 = findViewById(R.id.button02);
@@ -164,10 +151,42 @@ public class MainActivity extends AppCompatActivity {
         button14.setTag("unknown");
         button15.setTag("unknown");
         button16.setTag("unknown");
+
+        this.hurt = MediaPlayer.create(getApplicationContext(), R.raw.hurt);
+        this.openDoor = MediaPlayer.create(getApplicationContext(), R.raw.open_door);
+        this.closeDoor = MediaPlayer.create(getApplicationContext(), R.raw.close_door);
+        this.affraid = MediaPlayer.create(getApplicationContext(), R.raw.ohoh);
+        this.sword = MediaPlayer.create(getApplicationContext(), R.raw.hit);
+        this.lose = MediaPlayer.create(getApplicationContext(), R.raw.lose_sound);
+        this.win = MediaPlayer.create(getApplicationContext(), R.raw.win);
+
+        /* Demande du nom du joueur via popup */
+        askName();
+
+        /* S'il ne saisit pas de nom (si le joueur clique à côté de la popup) */
+        if(name.matches("")){
+            name = "Invité"; //Il s'appelle Invité par défaut
+            displayPlayerName.setText(name);
+        }
+
+        /* Initialisation de la partie */
+        displayGameStatus.setText(R.string.letsgo);
+        displayResult.setText(R.string.goodluck);
+        displayLevel.setText("Etage " + level);
+        initEnemyPower(minPower, maxPower);
+        initPotions();
+
+        /* Récupération des meilleurs scores */
+        try {
+            getFromIntern();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
     public void onClick(View v){
+        /* Sauvegarde du bouton sur lequel on vient de cliquer */
         buttonSelected = findViewById(v.getId());
 
         /* Différents cas qui implique qu'aucune action ne doit être faite si on clique sur le bouton */
@@ -176,15 +195,61 @@ public class MainActivity extends AppCompatActivity {
         if(buttonSelected.getTag() == "beaten" || isLost){
             if(isLost){
                 Toast.makeText(getApplicationContext(), "Partie terminée ! On s'en refait une ?", Toast.LENGTH_LONG).show();
-            }else if(buttonSelected.getTag() == "beaten"){
+
+                /* On affiche une popup afin de faire passer au niveau suivant */
+                final AlertDialog.Builder finishPopup = new AlertDialog.Builder(this);
+                finishPopup.setTitle("Aïe aïe aïe, c'est perdu !");
+                finishPopup.setMessage("On s'en refait une ?");
+                finishPopup.setPositiveButton("Oui", new DialogInterface.OnClickListener() { //Bouton permmettant de passer au niveau suivant
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        restartGame();
+                    }
+                });
+
+                finishPopup.setNegativeButton("Non", new DialogInterface.OnClickListener() { //Bouton qui arrêtera la partie
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                });
+
+                AlertDialog dialog = finishPopup.show(); //Affichage de la popup
+
+            }else if(buttonSelected.getTag() == "beaten" && isWon){
+                /* On affiche une popup afin de faire passer au niveau suivant */
+                final AlertDialog.Builder finishPopup = new AlertDialog.Builder(this);
+                finishPopup.setTitle("Bien joué !");
+                finishPopup.setMessage("Tu as battu tous les monstres !\nPrêt pour passer au niveau suivant ?\nSi non, tu devras tout recommencer !");
+                finishPopup.setPositiveButton("Oui", new DialogInterface.OnClickListener() { //Bouton permmettant de passer au niveau suivant
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        nextLevel();
+                    }
+                });
+
+                finishPopup.setNegativeButton("Non", new DialogInterface.OnClickListener() { //Bouton qui arrêtera la partie
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                });
+
+                AlertDialog dialog = finishPopup.show(); //Affichage de la popup
+
+                /* Esthétique de la popup pour afficher le message au milieu */
+                TextView messageView = (TextView)dialog.findViewById(android.R.id.message);
+                messageView.setGravity(Gravity.CENTER);
+            }else if(buttonSelected.getTag() == "beaten" && !isWon){
                 Toast.makeText(getApplicationContext(), "Tu l'as déjà battu, laisse le se reposer !", Toast.LENGTH_LONG).show();
             }
         }else{
+            openDoor.start();
             String id = getResources().getResourceEntryName(v.getId());
             String roomID = id.substring(id.length() - 2);
-            int indexRoom = Integer.parseInt(id.substring(id.length() - 2));
+            int indexRoom = Integer.parseInt(roomID);
 
-            //Intent qui contiendra les informations à envoyer
+            /* Intent qui contiendra les informations nécessaires à envoyer à l'activité de combat */
             Intent intent = new Intent(MainActivity.this, FightActivity.class);
             intent.putExtra("Life", displayLife.getText().toString());
             intent.putExtra("Power", displayPower.getText().toString());
@@ -213,31 +278,34 @@ public class MainActivity extends AppCompatActivity {
 
         displayGameStatus.setText("Résultat combat");
 
+        /* Si la salle n'avait pas encore été visitée */
         if(buttonSelected.getTag()!="seen") {
+            /* màj pièces non explorées */
             int roomLeft = Integer.parseInt(nbRoomLeft.getText().toString());
             roomLeft--;
             nbRoomLeft.setText(Integer.toString(roomLeft));
         }
 
+        //Si la potion de vie a été trouvée
+        if(data.getStringExtra("lifeFound").matches("oui")){
+            lifePotion = -1; //Modification index afin de ne plus pouvoir retomber dessus
+            displayLife.setText(data.getStringExtra("newLife"));
+        }
+
+        //Si la potion de force a été trouvée
+        if(data.getStringExtra("powerFound").matches("oui")){
+            powerPotion = -1; //Modification index afin de ne plus pouvoir retomber dessus
+            displayPower.setText(data.getStringExtra("newPower"));
+        }
+
         //Si fuite
         if (resultCode == Activity.RESULT_CANCELED) {
-
-            //Si la potion de vie a été trouvée
-            if(data.getStringExtra("lifeFound").matches("oui")){
-                lifePotion = -1; //Modification index afin de ne plus pouvoir retomber dessus
-            }
-
-            //Si la potion de vie a été trouvée
-            if(data.getStringExtra("powerFound").matches("oui")){
-                powerPotion = -1; //Modification index afin de ne plus pouvoir retomber dessus
-            }
+            //Son de fuite
+            affraid.start();
 
             //Fuite implique la perte de 1 point de vie
             int newLife = Integer.parseInt(displayLife.getText().toString());
             newLife--;
-
-            displayPower.setText(data.getStringExtra("newPower"));
-
             displayLife.setText(Integer.toString(newLife));
 
             displayResult.setText(getString(R.string.flee)); //Affichage d'un message en référence à la fuite
@@ -252,111 +320,120 @@ public class MainActivity extends AppCompatActivity {
         //Si victoire ou défaite
         if (resultCode == Activity.RESULT_OK) {
 
+            /* Récupération résultat combat */
             String resultFight = data.getStringExtra("result");
 
-            if(data.getStringExtra("lifeFound").matches("oui")){
-                lifePotion = -1;
-                displayLife.setText(data.getStringExtra("newLife"));
-            }
-
-            if(data.getStringExtra("powerFound").matches("oui")){
-                powerPotion = -1;
-                displayPower.setText(data.getStringExtra("newPower"));
-            }
-
-            //Victoire
+            /* Si le combat se résulte par une victoire */
             if(resultFight.matches("victory")){
+                sword.start();
                 int newPower = Integer.parseInt(displayPower.getText().toString());
 
-                //màj bouton, puissance & nombre de Salles
-
+                /*màj tag bouton indiquant que le monstre a été battu
+                 *màj de la puissance du joueur
+                 *màj du nombre de monstres encore en vie
+                 */
                 buttonSelected.setTag("beaten");
                 buttonSelected.setImageResource(R.drawable.cross);
-                newPower += 10;
+                newPower += 10 + (2 * (level-1)); //légère modification de la formule car sinon trop difficile
 
                 displayPower.setText(Integer.toString(newPower));
                 displayResult.setText(getString(R.string.beaten));
                 monstersLeft--;
 
-                checkVictory();
+                checkVictory(); //On vérifie si le joueur a battu tous les monstres de l'étage
             }
 
-            //Defaite
+            /* Si le combat se résulte par une défaite */
             if(resultFight.matches("lose")){
-                if(data.getStringExtra("lifeFound").matches("oui")){
-                    lifePotion = -1;
-                    displayLife.setText(data.getStringExtra("newLife"));
-                }
-
-                if(data.getStringExtra("powerFound").matches("oui")){
-                    powerPotion = -1;
-                    displayPower.setText(data.getStringExtra("newPower"));
-                }
-
-
+                hurt.start();
+                /* Perte de 3 points de vie */
                 int newLife = Integer.parseInt(displayLife.getText().toString());
                 newLife -= 3;
 
                 displayLife.setText(Integer.toString(newLife));
                 displayResult.setText(getString(R.string.lose));
 
+                /* Le monstre a été "vu" et non "battu" */
                 buttonSelected.setTag("seen");
                 buttonSelected.setImageResource(R.drawable.rakdos);
 
-                checkLose();
+                checkLose(); //On vérifie si le joueur a perdu la partie
             }
         }
     }
 
 
 
-
+    /* Fonction permettant si le joueur a terminé l'étage */
     private boolean checkVictory(){
+        /* S'il n'y a plus de mostres en vie */
         if(monstersLeft == 0){
+            win.start();
+            isWon = true;
             displayResult.setText(getString(R.string.beaten));
+
+            /* On affiche une popup afin de faire passer au niveau suivant */
             final AlertDialog.Builder finishPopup = new AlertDialog.Builder(this);
             finishPopup.setTitle("Bien joué !");
             finishPopup.setMessage("Tu as battu tous les monstres !\nPrêt pour passer au niveau suivant ?\nSi non, tu devras tout recommencer !");
-            finishPopup.setPositiveButton("Oui", new DialogInterface.OnClickListener() {
+            finishPopup.setPositiveButton("Oui", new DialogInterface.OnClickListener() { //Bouton permmettant de passer au niveau suivant
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     nextLevel();
                 }
             });
 
-            finishPopup.setNegativeButton("Non", new DialogInterface.OnClickListener() {
+            finishPopup.setNegativeButton("Non", new DialogInterface.OnClickListener() { //Bouton qui arrêtera la partie
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     finish();
                 }
             });
 
-            AlertDialog dialog = finishPopup.show();
+            AlertDialog dialog = finishPopup.show(); //Affichage de la popup
 
+            /* Esthétique de la popup pour afficher le message au milieu */
             TextView messageView = (TextView)dialog.findViewById(android.R.id.message);
             messageView.setGravity(Gravity.CENTER);
-
-            TextView titleView = (TextView)dialog.findViewById(this.getResources().getIdentifier("alertTitle", "id", "android"));
-            if (titleView != null) {
-                titleView.setGravity(Gravity.CENTER);
-            }
-
 
             return true;
         }
         return false;
     }
 
+    /* Fonction permettant de savoir si le joueur a perdu */
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     private boolean checkLose(){
         int currentLife = Integer.parseInt(displayLife.getText().toString());
         if(currentLife <= 0){
-            displayResult.setText("Dommage tu as perdu !");
-            displayGameStatus.setText("Défaite !");
+            lose.start();
+            displayResult.setText(R.string.gameLost);
+            displayGameStatus.setText(R.string.defeat);
             isLost = true;
 
+            /* On sauvegarde seulement s'il s'agit d'une partie non personnalisée */
             if(!isCustomGame)
                 sauvegarde();
+
+            /* On affiche une popup afin de faire passer au niveau suivant */
+            final AlertDialog.Builder finishPopup = new AlertDialog.Builder(this);
+            finishPopup.setTitle("Aïe aïe aïe, c'est perdu !");
+            finishPopup.setMessage("On s'en refait une ?");
+            finishPopup.setPositiveButton("Oui", new DialogInterface.OnClickListener() { //Bouton permmettant de passer au niveau suivant
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    restartGame();
+                }
+            });
+
+            finishPopup.setNegativeButton("Non", new DialogInterface.OnClickListener() { //Bouton qui arrêtera la partie
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    finish();
+                }
+            });
+
+            AlertDialog dialog = finishPopup.show(); //Affichage de la popup
 
             return true;
         }
@@ -402,6 +479,7 @@ public class MainActivity extends AppCompatActivity {
             toast.show();
         }else{ //Si tout est ok alors on paramètre la partie !
             isLost = false; //Au cas où la partie précédente était perdue
+            isWon = false; //Au cas où la partie précédente était gagnée
             isCustomGame = true; //Permet de savoir si la game est Custom ou non
 
             level = 1; //On redémarre au niveau 1
@@ -442,7 +520,7 @@ public class MainActivity extends AppCompatActivity {
             customPopup.build();
         }
 
-        if (id == R.id.restart) { //Recommencer la partie à 0
+        if (id == R.id.restart) { //Recommencer la partie à 0 (on relance une partie non paramétrée
             restartGame();
             return true;
         }
@@ -464,11 +542,12 @@ public class MainActivity extends AppCompatActivity {
     /* Fonction appelée lorsque le joueur passe au niveau suivant */
     private void nextLevel(){
         level++; //Incrémentation du niveau
+        isWon = false; //Réinitialisation de la victoire
 
-        minPower += 75; //On augmente la puissance min et max des monstres
-        maxPower += 80; //afin d'augmenter la difficulté
-        initialLife += 5; //On lui donne un peu plus de vie
-        initialPower += 50; //et plus de puissance initiale
+        minPower += 80; //On augmente la puissance min et max des monstres
+        maxPower += 100; //afin d'augmenter la difficulté
+        initialLife += 3; //On lui donne un peu plus de vie
+        initialPower += 60; //Et plus de puissance initiale
 
         /* Mise à jours des données à l'écran */
         displayPower.setText(Integer.toString(initialPower));
@@ -489,13 +568,14 @@ public class MainActivity extends AppCompatActivity {
         resetButtons();
     }
 
-    /* Réinitialisation intégrale de la partie par défaut */
+    /* Réinitialisation intégrale de la partie par défaut (non customisée) */
     private void reInitAll(){
         isLost = false;
+        isWon = false;
         isCustomGame = false;
         level = 1;
         minPower = 1;
-        maxPower = 100;
+        maxPower = 150;
         initialLife = 10;
         initialPower = 100;
 
@@ -527,6 +607,43 @@ public class MainActivity extends AppCompatActivity {
     private void askName(){
         namePopup = new NamePopup(this);
         namePopup.build();
+    }
+
+
+    private Vector getStageandPower(String s){
+        Vector stageAndPower = new Vector();
+
+        int index = 0; //Index servant à parcourir le score
+        int nb = 0; //Utile afin de se repérer durant le parcours de notre score (Représente le nombre de ':' rencontré(s))
+        String stage = ""; //Etage - Niveau atteint lors de la dernière partie
+        String power = ""; //Puissance atteinte lors de la dernière partie
+
+        while (index != s.length() -1) {
+            //Si le caractère actuel est un ':'
+            if(s.substring(index, index+1).matches(":")){
+                int j = index+2; //Saut de l'espace présent dans la string
+                nb++;
+
+                /* Parcours afin de récupérer soit l'étage, soit la puissance du score */
+                while(!s.substring(j,j+1).matches(" ")) {
+                    if (nb == 1) { //Premier ':'
+                        stage += s.substring(j, j + 1);
+                    } else if (nb == 2) { //Deuxième ':'
+                        power += s.substring(j, j + 1);
+                    }
+                    j++;
+                }
+
+            }
+            index++; // Passage au caractère suivant
+        }
+
+        stageAndPower.add(stage);
+        stageAndPower.add(power);
+
+        System.out.println("YOOOOOO " + stageAndPower.get(0) + " EHHHHE " + stageAndPower.get(1));
+
+        return stageAndPower;
     }
 
     /* Fonction permettant la sauvegarde du score de la partie qui vient de se terminer */
@@ -563,16 +680,17 @@ public class MainActivity extends AppCompatActivity {
                 nb++;
 
                 /* Parcours afin de récupérer soit l'étage, soit la puissance du score */
-                while(!score.substring(j,j+1).matches(" ")) {
-                    if (nb == 1) {
-                        stage += score.substring(j, j + 1);
+                while(!score.substring(j, j+1).matches(" ")) {
+                    if (!score.substring(j, j+1).matches(" ")) {
+                        if (nb == 1) {
+                            stage += score.substring(j, j+1);
 
-                    } else if (nb == 2) {
-                        power += score.substring(j, j + 1);
+                        } else if (nb == 2) {
+                            power += score.substring(j, j+1);
+                        }
                     }
                     j++;
                 }
-
             }
             index++; // Passage au caractère suivant
         }
@@ -664,12 +782,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /* Initialisation des index des potions */
+    /* Initialisation des indexs des potions */
     private void initPotions(){
         powerPotion = genererInt(0,15);
         do{
             lifePotion = genererInt(0,15);
-        }while(powerPotion == lifePotion);
+        }while(powerPotion == lifePotion); /* Pour ne pas mettre les potions au même monstre */
     }
 
     /* Reinitialisation des boutons */
@@ -741,6 +859,5 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
-
 }
 
